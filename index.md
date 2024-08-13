@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eMail Analyst Tools</title>
+    <title>eMail Analyst</title>
     <style>
         body {
             margin: 0;
@@ -65,9 +65,9 @@
 </head>
 <body>
     <div class="menu-container">
-        <h1>eMail Analyst Tools</h1>
+        <h1>eMail Analysis Tools</h1>
         <ul class="menu-list">
-            <li><a href="https://n4igme.github.io/emlize/emlckr.html">EML Checker</a></li>
+            <li><a href="https://n4igme.github.io/emlize/emlckr.html">EML File Checker</a></li>
         </ul>
     </div>
 </body>
