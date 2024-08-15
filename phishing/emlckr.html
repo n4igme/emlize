@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>emlize | eML Checker</title>
+    <title>eML Checker | eML Analysis Tool</title>
     <link rel="stylesheet" href="https://n4igme.github.io/assets/css/random/custom.css" />
 </head>
 <body>
@@ -30,9 +30,10 @@
             const output = document.getElementById('output');
             output.textContent = '';
 
-            // Extract SPF and DKIM results
+            // Extract SPF, DKIM, and DMARC results
             const spfMatch = content.match(/Received-SPF: (.+)/);
-            const dkimMatch = content.match(/DKIM-Signature: (.+)/);
+            const dkimMatches = content.match(/DKIM-Signature: (.+)/g);
+            const dmarcMatch = content.match(/dmarc=(\w+)/i);
 
             if (spfMatch) {
                 output.textContent += `SPF Result: ${spfMatch[1]}\n\n`;
@@ -40,10 +41,20 @@
                 output.textContent += `SPF not found in headers.\n\n`;
             }
 
-            if (dkimMatch) {
-                output.textContent += `DKIM-Signature found: ${dkimMatch[1]}\n\n`;
+            if (dkimMatches) {
+                output.textContent += `DKIM-Signatures found:\n`;
+                dkimMatches.forEach((dkim, index) => {
+                    output.textContent += `DKIM-Signature ${index + 1}: ${dkim}\n`;
+                });
+                output.textContent += '\n';
             } else {
                 output.textContent += `DKIM-Signature not found in headers.\n\n`;
+            }
+
+            if (dmarcMatch) {
+                output.textContent += `DMARC Result: ${dmarcMatch[1]}\n\n`;
+            } else {
+                output.textContent += `DMARC result not found in headers.\n\n`;
             }
 
             // Extract Received headers for tracing the email path
