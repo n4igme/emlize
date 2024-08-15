@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>emlize | eML Checker</title>
-    <link rel="stylesheet" href="../assets/css/random/custom.css" />
+    <link rel="stylesheet" href="https://n4igme.github.io/assets/css/random/custom.css" />
 </head>
 <body>
     <div class="container">
         <h1>eML Checker</h1>
         <input type="file" id="emlFileInput">
-        <pre id="output"></pre>
+        <pre id="output">Upload a .eml file to analyze its content.</pre>
     </div>
 
     <script>
@@ -27,11 +27,12 @@
         });
 
         function parseEmlContent(content) {
-            const spfMatch = content.match(/Received-SPF: (.+)/);
-            const dkimMatch = content.match(/DKIM-Signature: (.+)/);
-
             const output = document.getElementById('output');
             output.textContent = '';
+
+            // Extract SPF and DKIM results
+            const spfMatch = content.match(/Received-SPF: (.+)/);
+            const dkimMatch = content.match(/DKIM-Signature: (.+)/);
 
             if (spfMatch) {
                 output.textContent += `SPF Result: ${spfMatch[1]}\n\n`;
@@ -43,6 +44,30 @@
                 output.textContent += `DKIM-Signature found: ${dkimMatch[1]}\n\n`;
             } else {
                 output.textContent += `DKIM-Signature not found in headers.\n\n`;
+            }
+
+            // Extract Received headers for tracing the email path
+            const receivedHeaders = extractReceivedHeaders(content);
+            if (receivedHeaders.length > 0) {
+                output.textContent += 'Received Headers (Email Path):\n';
+                receivedHeaders.forEach(header => output.textContent += `${header}\n`);
+                output.textContent += '\n';
+            } else {
+                output.textContent += 'No Received headers found.\n\n';
+            }
+
+            // Extract and categorize email addresses
+            const categorizedEmails = categorizeEmailAddresses(content);
+            if (categorizedEmails.length > 0) {
+                output.textContent += 'Extracted Email Addresses:\n';
+                categorizedEmails.forEach(category => {
+                    if (category.emails.size > 0) {
+                        output.textContent += `${category.category}: ${[...category.emails].join(', ')}\n`;
+                    }
+                });
+                output.textContent += '\n';
+            } else {
+                output.textContent += 'No email addresses found.\n\n';
             }
 
             // Extract links from the content
@@ -93,6 +118,60 @@
             }
 
             return attachments;
+        }
+
+        function extractReceivedHeaders(content) {
+            const receivedHeaders = [];
+            const receivedRegex = /^Received: (.+)$/gm;
+            let match;
+            while ((match = receivedRegex.exec(content)) !== null) {
+                receivedHeaders.push(match[1]);
+            }
+            return receivedHeaders;
+        }
+
+        function categorizeEmailAddresses(content) {
+            const emailAddresses = {
+                sender: new Set(),
+                receiver: new Set(),
+                replyTo: new Set(),
+                other: new Set()
+            };
+
+            const fromMatch = content.match(/From:\s(.+)/);
+            const toMatch = content.match(/To:\s(.+)/);
+            const replyToMatch = content.match(/Reply-To:\s(.+)/);
+
+            if (fromMatch) {
+                extractEmails(fromMatch[1]).forEach(email => emailAddresses.sender.add(email));
+            }
+
+            if (toMatch) {
+                extractEmails(toMatch[1]).forEach(email => emailAddresses.receiver.add(email));
+            }
+
+            if (replyToMatch) {
+                extractEmails(replyToMatch[1]).forEach(email => emailAddresses.replyTo.add(email));
+            }
+
+            const allEmails = extractEmails(content);
+            allEmails.forEach(email => {
+                if (!emailAddresses.sender.has(email) && !emailAddresses.receiver.has(email) && !emailAddresses.replyTo.has(email)) {
+                    emailAddresses.other.add(email);
+                }
+            });
+
+            return [
+                { category: 'Sender', emails: emailAddresses.sender },
+                { category: 'Receiver', emails: emailAddresses.receiver },
+                { category: 'Reply To', emails: emailAddresses.replyTo },
+                { category: 'Other', emails: emailAddresses.other }
+            ];
+        }
+
+        function extractEmails(text) {
+            const emailRegex = /[\w.+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+            return text.match(emailRegex) || [];
         }
     </script>
 </body>
